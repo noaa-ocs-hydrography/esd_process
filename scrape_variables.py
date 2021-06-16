@@ -9,6 +9,13 @@ extensions = ('.mb58.gz', '.mb59.gz')
 logger_level = logging.INFO
 logger_name = 'scraper'
 
+# kluster specific variables
+kluster_coordinate_system = 'NAD83'  # one of NAD83 and WGS84
+kluster_vertical_reference = 'waterline'  # one of 'ellipse' 'mllw' 'NOAA_MLLW' 'NOAA_MHW' (NOAA references require vdatum which isn't hooked up in here just yet)
+kluster_grid_type = 'single_resolution'  # one of 'single_resolution', 'variable_resolution_tile'
+kluster_resolution = None  # set this to pick the resolution of the grid, None will auto pick, variable resolution must be None
+kluster_grid_format = 'bag'  # one of 'csv', 'geotiff', 'bag'
+
 # exclude vessels that are decommissioned or are not likely to ever get a modern kongsberg sonar system, shortens the
 # time necessary to crawl the site
 exclude_vessels = (

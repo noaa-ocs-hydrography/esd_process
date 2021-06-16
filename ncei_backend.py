@@ -11,11 +11,18 @@ class BaseBackend:
     """
     def __init__(self):
         self.output_folder = None
+
+        # these attributes are populated during scrape and saved to the backend (database)
         self.downloaded_success_count = 0
         self.downloaded_error_count = 0
         self.ignored_count = 0
         self.ship_name = ''
         self.survey_name = ''
+        self.survey_url = ''
+        self.raw_data_path = ''
+        self.processed_data_path = ''
+        self.grid_path = ''
+
         self._backend_logger = logging.getLogger(scrape_variables.logger_name + '_backend')
         self._backend_logger.setLevel(scrape_variables.logger_level)
 
@@ -66,14 +73,17 @@ class SqlBackend(BaseBackend):
         self._backend_logger.log(logging.INFO, f'Generating new table "surveys" for scrape data...')
         # create the single table that we need to store survey metadata
         self._cur.execute('''CREATE TABLE surveys 
-                             (shipname text, survey text, downloaded_success int, downloaded_error int, ignored int)''')
+                             (ship_name text, survey text, downloaded_success int, downloaded_error int, 
+                             ignored int, raw_data_path text, processed_data_path text, grid_path text)''')
         self._conn.commit()
 
     def _add_survey(self):
         if self.ship_name and self.survey_name:
             if not self._check_for_survey(self.ship_name, self.survey_name):
                 self._backend_logger.log(logging.INFO, f'Adding new data for {self.ship_name}/{self.survey_name} to sqlite database')
-                self._cur.execute(f'INSERT INTO surveys VALUES ("{self.ship_name.lower()}","{self.survey_name.lower()}",{self.downloaded_success_count},{self.downloaded_error_count},{self.ignored_count})')
+                self._cur.execute(f'INSERT INTO surveys VALUES ("{self.ship_name.lower()}","{self.survey_name.lower()}",'
+                                  f'{self.downloaded_success_count},{self.downloaded_error_count},{self.ignored_count},'
+                                  f'"{self.raw_data_path}","{self.processed_data_path}","{self.grid_path}")')
                 self._conn.commit()
         # reset data to defaults to get ready for next survey
         self.ship_name = ''
@@ -83,7 +93,7 @@ class SqlBackend(BaseBackend):
         self.ignored_count = 0
 
     def _check_for_survey(self, shipname: str, surveyname: str):
-        data = self._cur.execute(f'SELECT * FROM surveys WHERE shipname="{shipname.lower()}" and survey="{surveyname.lower()}"')
+        data = self._cur.execute(f'SELECT * FROM surveys WHERE ship_name="{shipname.lower()}" and survey="{surveyname.lower()}"')
         if len(data.fetchall()) > 0:
             return True
         else:

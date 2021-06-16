@@ -9,6 +9,7 @@ from datetime import datetime
 
 import scrape_variables
 from ncei_backend import SqlBackend
+from kluster_process import kluster_enabled, run_kluster
 
 # enable debug logging of the server connection
 # import http.client
@@ -26,10 +27,13 @@ class NceiScrape(SqlBackend):
         # if you ever have to change this url, it will probably mess up a lot of the logic used to find the survey/shipname
         self.ncei_url = "https://data.ngdc.noaa.gov/platforms/ocean/ships/"
 
+        self.kluster_coordinate_system = 'NAD83'
+
         self.output_folder = output_folder
         self._validate_inputs()
         self._configure_logger()
         self._configure_backend()
+        self._check_kluster()
 
     def _validate_inputs(self):
         """
@@ -50,6 +54,15 @@ class NceiScrape(SqlBackend):
         os.makedirs(self.output_folder, exist_ok=True)
         logger = logging.getLogger(scrape_variables.logger_name)
         logger.log(logging.INFO, f'Output directory set to {self.output_folder}')
+
+    def _check_kluster(self):
+        """
+        Simple info message for whether or not Kluster is installed and found
+        """
+        if kluster_enabled:
+            self.logger.log(logging.INFO, f'Kluster module found, kluster processing enabled')
+        else:
+            self.logger.log(logging.WARNING, f'Unable to find Kluster!')
 
     def _configure_logger(self):
         """
@@ -99,6 +112,8 @@ class NceiScrape(SqlBackend):
             self._add_survey()
             self.ship_name = urldata[6]
             self.survey_name = urldata[7]
+            self.survey_url = ncei_url
+            self.raw_data_path = ''
             if self._check_for_survey(self.ship_name, self.survey_name):  # survey exists in metadata
                 self.logger.log(logging.INFO, f'Skipping {self.ship_name}/{self.survey_name}')
                 return False
@@ -127,6 +142,11 @@ class NceiScrape(SqlBackend):
             success = self.download_multibeam_file(nceifile, output_path)
             if success:
                 self.downloaded_success_count += 1
+                self.raw_data_path = os.path.dirname(output_path)
+                self.processed_data_path = self.raw_data_path + '_processed'
+                self.grid_path = os.path.join(self.processed_data_path, f'kluster_export_{scrape_variables.kluster_grid_type}'
+                                                                        f'_{scrape_variables.kluster_resolution}'
+                                                                        f'.{scrape_variables.kluster_grid_format}')
             else:
                 self.downloaded_error_count += 1
             # self.logger.log(logging.INFO, (shipname, surveyname, filename, output_path))
@@ -176,6 +196,7 @@ class NceiScrape(SqlBackend):
                         self._ncei_scrape(nceisite=nceisite + href)
                 except Exception as e:
                     self.logger.log(logging.ERROR, f'ERROR: {type(e).__name__} - {e}')
+            self.kluster_process()
 
     def connect_to_server(self, ncei_url: str):
         """
@@ -201,6 +222,24 @@ class NceiScrape(SqlBackend):
             retries += 1
             self.logger.log(logging.WARNING, f'Retrying {ncei_url}, received status code {resp.status_code}')
         self.logger.log(logging.ERROR, f'Unable to connect to {ncei_url}, tried {retries} times without success')
+
+    def kluster_process(self):
+        """
+        Run the kluster routines on the data we just downloaded.
+        """
+        if self.raw_data_path:
+            if kluster_enabled:
+                if self.processed_data_path:
+                    multibeamfiles = [os.path.join(self.raw_data_path, fil) for fil in os.listdir(self.raw_data_path)]
+                    os.makedirs(self.processed_data_path, exist_ok=True)
+                    run_kluster(multibeamfiles, self.processed_data_path, logger=self.logger)
+                else:
+                    self.logger.log(logging.ERROR, f'Unable to find the processed data path, which is set during file transfer, were files not transferred?')
+            else:
+                self.logger.log(logging.WARNING, f'Kluster not found, skipping the processing for this survey')
+        else:
+            # no data transferred, we process nothing
+            pass
 
     def download_multibeam_file(self, ncei_url: str, output_path: str, decompress: bool = True):
         """

@@ -2,7 +2,7 @@ import os
 import sqlite3
 import logging
 
-import scrape_variables
+from esd_process import scrape_variables
 
 
 class BaseBackend:

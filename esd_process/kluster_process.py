@@ -7,7 +7,7 @@ try:
     kluster_enabled = True
 except:
     kluster_enabled = False
-import scrape_variables
+from esd_process import scrape_variables
 
 
 def run_kluster(multibeam_files: list, outfold: str = None, logger: logging.Logger = None):

@@ -7,9 +7,9 @@ import gzip
 import logging
 from datetime import datetime
 
-import scrape_variables
-from ncei_backend import SqlBackend
-from kluster_process import kluster_enabled, run_kluster
+from esd_process import scrape_variables
+from esd_process.ncei_backend import SqlBackend
+from esd_process.kluster_process import kluster_enabled, run_kluster
 
 # enable debug logging of the server connection
 # import http.client
@@ -350,6 +350,10 @@ def _build_output_path(output_folder, file_extension, shipname, surveyname, file
     return pth
 
 
-if __name__ == "__main__":
+def main():
     nc = NceiScrape()
     nc.ncei_scrape()
+
+
+if __name__ == "__main__":
+    main()

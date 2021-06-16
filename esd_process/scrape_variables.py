@@ -1,7 +1,7 @@
 import os
 import logging
 
-output_directory = ''
+output_directory = r'C:\Users\eyou1\Downloads\working_directory'
 default_output_directory = os.path.join(os.getcwd(), 'working_directory')
 download_retries = 20
 server_reconnect_retries = 10

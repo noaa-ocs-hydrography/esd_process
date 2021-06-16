@@ -39,6 +39,14 @@ Perform these in order:
 
 `pip install git+https://github.com/noaa-ocs-hydrography/esd_process.git#egg=esd_process `
 
+##### Required for GDAL < 3.2.3 and BAG output
+
+If you use GDAL < 3.2.3 (which this currently uses due to a requirement by QGIS), you need to replace:
+
+path_to_envs_folder\envs\esd_process_test\Library\share\gdal\bag_template.xml
+
+with the bag_template file in this repository.  This will write the correct bag metadata, required by CARIS to view.
+
 ## Quickstart - using scrape_variables.py to initialize
 
 Configure the scrape_variables.py for the settings you want to use.

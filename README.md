@@ -39,7 +39,7 @@ Perform these in order:
 
 `pip install git+https://github.com/noaa-ocs-hydrography/esd_process.git#egg=esd_process `
 
-## Quickstart
+## Quickstart - using scrape_variables.py to initialize
 
 Configure the scrape_variables.py for the settings you want to use.
 
@@ -48,3 +48,17 @@ Run by calling the ncei_scrape.py file:
 `conda activate esd_process_test `
 
 `python -m esd_process`
+
+## Quickstart - using command line
+
+Run by calling the ncei_scrape command line utility
+
+`conda activate esd_process_test `
+
+See help text
+
+`python -m esd_process nceiscrape -h`
+
+Example running and setting the output directory manually
+
+`python -m esd_process nceiscrape -o C:\source\esd_process\myoutputdirectory`

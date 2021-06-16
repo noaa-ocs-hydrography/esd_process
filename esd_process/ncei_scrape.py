@@ -20,7 +20,8 @@ class NceiScrape(SqlBackend):
     """
     Stores the metadata for the ncei scraping, run ncei_scrape to start the operation.
     """
-    def __init__(self, output_folder: str = None):
+    def __init__(self, output_folder: str = None, coordinate_system: str = None, vertical_reference: str = None,
+                 grid_type: str = None, resolution: float = None, grid_format: str = None):
         super().__init__()
         # start a new session, should help with pulling from the server many times in a row
         self.session = requests.Session()
@@ -30,6 +31,12 @@ class NceiScrape(SqlBackend):
         self.kluster_coordinate_system = 'NAD83'
 
         self.output_folder = output_folder
+        self.coordinate_system = coordinate_system
+        self.vertical_reference = vertical_reference
+        self.grid_type = grid_type
+        self.resolution = resolution
+        self.grid_format = grid_format
+
         self._validate_inputs()
         self._configure_logger()
         self._configure_backend()
@@ -144,9 +151,21 @@ class NceiScrape(SqlBackend):
                 self.downloaded_success_count += 1
                 self.raw_data_path = os.path.dirname(output_path)
                 self.processed_data_path = self.raw_data_path + '_processed'
-                self.grid_path = os.path.join(self.processed_data_path, f'kluster_export_{scrape_variables.kluster_grid_type}'
-                                                                        f'_{scrape_variables.kluster_resolution}'
-                                                                        f'.{scrape_variables.kluster_grid_format}')
+                if self.grid_type:
+                    kgt = self.grid_type
+                else:
+                    kgt = scrape_variables.kluster_grid_type
+
+                if self.resolution:
+                    kgr = self.resolution
+                else:
+                    kgr = scrape_variables.kluster_resolution
+
+                if self.grid_format:
+                    kgf = self.grid_format
+                else:
+                    kgf = scrape_variables.kluster_grid_format
+                self.grid_path = os.path.join(self.processed_data_path, f'kluster_export_{kgt}_{kgr}.{kgf}')
             else:
                 self.downloaded_error_count += 1
             # self.logger.log(logging.INFO, (shipname, surveyname, filename, output_path))
@@ -232,7 +251,9 @@ class NceiScrape(SqlBackend):
                 if self.processed_data_path:
                     multibeamfiles = [os.path.join(self.raw_data_path, fil) for fil in os.listdir(self.raw_data_path)]
                     os.makedirs(self.processed_data_path, exist_ok=True)
-                    run_kluster(multibeamfiles, self.processed_data_path, logger=self.logger)
+                    run_kluster(multibeamfiles, self.processed_data_path, logger=self.logger,
+                                coordinate_system=self.coordinate_system, vertical_reference=self.vertical_reference,
+                                grid_type=self.grid_type, resolution=self.resolution, grid_format=self.grid_format)
                 else:
                     self.logger.log(logging.ERROR, f'Unable to find the processed data path, which is set during file transfer, were files not transferred?')
             else:
@@ -262,7 +283,7 @@ class NceiScrape(SqlBackend):
         """
 
         if os.path.exists(output_path):
-            self.logger.log(logging.ERROR, f'{output_path} already exists, cannot download file')
+            self.logger.log(logging.WARNING, f'{output_path} already exists, skipping this file')
             return False
 
         retries = 0
@@ -350,8 +371,29 @@ def _build_output_path(output_folder, file_extension, shipname, surveyname, file
     return pth
 
 
-def main():
-    nc = NceiScrape()
+def main(output_folder: str = None, coordinate_system: str = None, vertical_reference: str = None, grid_type: str = None,
+         resolution: float = None, grid_format: str = None):
+    """
+    Run the ncei scrape utility
+
+    Parameters
+    ----------
+    output_folder
+        optional, a path to an empty folder (it will create if it doesnt exist) to hold the downloaded/processed data, default is the current working directory
+    coordinate_system
+        optional, processed coordinate system to use, one of NAD83 and WGS84, default is NAD83
+    vertical_reference
+        optional, vertical reference to use for the processed data, one of 'ellipse' 'mllw' 'NOAA_MLLW' 'NOAA_MHW' (NOAA references require vdatum which isn't hooked up in here just yet), default is waterline
+    grid_type
+        optional, the grid type you want to build with Kluster for each dataset, one of 'single_resolution', 'variable_resolution_tile', default is single_resolution
+    resolution
+        optional (only for single_resolution), the resolution of the grid in meters, set this if you do not want to use the auto-resolution option
+    grid_format
+        optional, the grid format exported by kluster, one of 'csv', 'geotiff', 'bag', default is bag
+    """
+
+    nc = NceiScrape(output_folder=output_folder, coordinate_system=coordinate_system, vertical_reference=vertical_reference,
+                    grid_type=grid_type, resolution=resolution, grid_format=grid_format)
     nc.ncei_scrape()
 
 

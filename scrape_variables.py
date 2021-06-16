@@ -1,9 +1,13 @@
 import os
+import logging
 
 output_directory = ''
 default_output_directory = os.path.join(os.getcwd(), 'working_directory')
 download_retries = 20
+server_reconnect_retries = 10
 extensions = ('.mb58.gz', '.mb59.gz')
+logger_level = logging.INFO
+logger_name = 'scraper'
 
 # exclude vessels that are decommissioned or are not likely to ever get a modern kongsberg sonar system, shortens the
 # time necessary to crawl the site

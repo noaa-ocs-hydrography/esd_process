@@ -21,7 +21,7 @@ kluster_grid_format = 'bag'  # one of 'csv', 'geotiff', 'bag'
 exclude_vessels = (
     'ahi',  # NOAA Research Vessel Acoustic Habitat Investigator, has a Reson
     'akademik_tryoshnikov',  # Russian scientific vessel, ELAC system
-    # 'amundsen',  # Canadian CG, has an EM302
+    'amundsen',  # Canadian CG, has an EM302, but all the data is in the canadian arctic
     # 'atlantic_surveyor',  # Independent vessel?  I see Leidos projects with them, appear to have a Reson system
     # 'atlantis',  # WHOI vessel, has an EM122
     'atlantis_ii',  # Used to be WHOI?  Now owned by someone else, had a SeaBeam

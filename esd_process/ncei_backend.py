@@ -38,6 +38,9 @@ class BaseBackend:
     def _check_for_survey(self, shipname: str, surveyname: str):
         raise NotImplementedError('_check_for_survey must be implemented for this backend to operate')
 
+    def _check_for_grid(self, shipname: str, surveyname: str):
+        raise NotImplementedError('_check_for_grid must be implemented for this backend to operate')
+
     def _remove_survey(self, shipname: str, surveyname: str):
         raise NotImplementedError('_remove_survey must be implemented for this backend to operate')
 
@@ -91,9 +94,19 @@ class SqlBackend(BaseBackend):
         self.downloaded_success_count = 0
         self.downloaded_error_count = 0
         self.ignored_count = 0
+        self.raw_data_path = ''
+        self.processed_data_path = ''
+        self.grid_path = ''
 
     def _check_for_survey(self, shipname: str, surveyname: str):
         data = self._cur.execute(f'SELECT * FROM surveys WHERE ship_name="{shipname.lower()}" and survey="{surveyname.lower()}"')
+        if len(data.fetchall()) > 0:
+            return True
+        else:
+            return False
+
+    def _check_for_grid(self, shipname: str, surveyname: str):
+        data = self._cur.execute(f'SELECT * FROM surveys WHERE ship_name="{shipname.lower()}" and survey="{surveyname.lower()}" and grid_path != ""')
         if len(data.fetchall()) > 0:
             return True
         else:

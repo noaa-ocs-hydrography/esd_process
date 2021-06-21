@@ -1,10 +1,15 @@
 import os
 import logging
 
-output_directory = ''
+# where you want the downloaded data to go, otherwise uses default_output_directory
+output_directory = 'D:'
+# set this to only download data within a specific region
+region = 'LA_LongBeach_WGS84'
+
 default_output_directory = os.path.join(os.getcwd(), 'working_directory')
 download_retries = 20
 server_reconnect_retries = 10
+query_chunk_size = 500  # max number of records we can query at once
 extensions = ('.mb58.gz', '.mb59.gz')
 logger_level = logging.INFO
 logger_name = 'scraper'

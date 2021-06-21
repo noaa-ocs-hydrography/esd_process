@@ -40,8 +40,10 @@ def run_kluster(multibeam_files: list, outfold: str = None, logger: logging.Logg
     try:
         _, converted_data_list = run_kluster_intel_process(multibeam_files, outfold, coordinate_system=coordinate_system,
                                                            vertical_reference=vertical_reference)
+        processed = True
     except:
         converted_data_list = []
+        processed = False
     if logger:
         if len(converted_data_list) > 0:
             logger.log(logging.INFO, f'run_kluster - processed {len(multibeam_files)} multibeam files into '
@@ -52,8 +54,10 @@ def run_kluster(multibeam_files: list, outfold: str = None, logger: logging.Logg
     try:
         surf, export_path = build_kluster_surface(converted_data_list, outfold, grid_type=grid_type,
                                                   resolution=resolution, grid_format=grid_format)
+        gridded = True
     except:
         surf, export_path = None, ''
+        gridded = False
     if logger:
         if surf and os.path.join(export_path):
             logger.log(logging.INFO, f'run_kluster - generated new surface, exported grid to {export_path}')
@@ -61,6 +65,7 @@ def run_kluster(multibeam_files: list, outfold: str = None, logger: logging.Logg
             logger.log(logging.ERROR, f'run_kluster - generated new surface, but the export to {export_path} failed')
         else:
             logger.log(logging.ERROR, f'run_kluster - unable to generate new surface, error in the processing.')
+    return processed, gridded
 
 
 def run_kluster_intel_process(multibeam_files: list, outfold: str = None, coordinate_system: str = None,

@@ -9,6 +9,7 @@ from datetime import datetime
 
 from esd_process import scrape_variables
 from esd_process.ncei_backend import SqlBackend
+from esd_process.ncei_query import MultibeamQuery
 from esd_process.kluster_process import kluster_enabled, run_kluster
 
 # enable debug logging of the server connection
@@ -21,7 +22,7 @@ class NceiScrape(SqlBackend):
     Stores the metadata for the ncei scraping, run ncei_scrape to start the operation.
     """
     def __init__(self, output_folder: str = None, coordinate_system: str = None, vertical_reference: str = None,
-                 grid_type: str = None, resolution: float = None, grid_format: str = None):
+                 region: str = None, grid_type: str = None, resolution: float = None, grid_format: str = None):
         super().__init__()
         # start a new session, should help with pulling from the server many times in a row
         self.session = requests.Session()
@@ -33,14 +34,19 @@ class NceiScrape(SqlBackend):
         self.output_folder = output_folder
         self.coordinate_system = coordinate_system
         self.vertical_reference = vertical_reference
+        self.region = region
         self.grid_type = grid_type
         self.resolution = resolution
         self.grid_format = grid_format
+
+        self.region_ship_name = []
+        self.region_survey_name = []
 
         self._validate_inputs()
         self._configure_logger()
         self._configure_backend()
         self._check_kluster()
+        self._check_regions()
 
     def _validate_inputs(self):
         """
@@ -58,6 +64,7 @@ class NceiScrape(SqlBackend):
             self.output_folder = scrape_variables.output_directory
         else:
             self.output_folder = scrape_variables.default_output_directory
+
         os.makedirs(self.output_folder, exist_ok=True)
         logger = logging.getLogger(scrape_variables.logger_name)
         logger.log(logging.INFO, f'Output directory set to {self.output_folder}')
@@ -70,6 +77,19 @@ class NceiScrape(SqlBackend):
             self.logger.log(logging.INFO, f'Kluster module found, kluster processing enabled')
         else:
             self.logger.log(logging.WARNING, f'Unable to find Kluster!')
+
+    def _check_regions(self):
+        """
+        If a region is provided, either in scrape_variables or as an argument, perform the query and get all the
+        ship/survey names in the area.
+        """
+
+        if self.region is not None:
+            self.region = self.region
+        elif scrape_variables.region:
+            self.region = scrape_variables.region
+        if self.region:
+            self.region_ship_name, self.region_survey_name = survey_names_in_region(self.region)
 
     def _configure_logger(self):
         """
@@ -121,12 +141,19 @@ class NceiScrape(SqlBackend):
             self.survey_name = urldata[7]
             self.survey_url = ncei_url
             self.raw_data_path = ''
-            if self._check_for_survey(self.ship_name, self.survey_name):  # survey exists in metadata
-                self.logger.log(logging.INFO, f'Skipping {self.ship_name}/{self.survey_name}')
+            # these two checks only if a region was provided
+            if self.region_survey_name and (self.survey_name.lower() not in self.region_survey_name):
+                self.logger.log(logging.INFO, f'Skipping {self.ship_name}/{self.survey_name}, survey name not found in region list')
                 return False
-            else:
-                self.logger.log(logging.INFO, f'Searching through {self.ship_name}/{self.survey_name}')
-                return True
+            elif self.region_ship_name[self.region_survey_name.index(self.survey_name.lower())].replace(' ', '_') != self.ship_name:
+                self.logger.log(logging.INFO, f'Skipping {self.ship_name}/{self.survey_name}, survey name found but ship name does not match')
+                return False
+
+            if self._check_for_grid(self.ship_name, self.survey_name):  # survey exists in metadata and a grid has successfully been made
+                self.logger.log(logging.INFO, f'Skipping {self.ship_name}/{self.survey_name}, already processed once')
+                return False
+            self.logger.log(logging.INFO, f'Searching for files in {self.ship_name}/{self.survey_name}')
+            return True
         return True
 
     def _download_file_url(self, nceifile: str):
@@ -148,6 +175,7 @@ class NceiScrape(SqlBackend):
             # download the file and track if the download was successful
             success = self.download_multibeam_file(nceifile, output_path)
             if success:
+                self.logger.log(logging.INFO, 'Downloaded file {}'.format(output_path))
                 self.downloaded_success_count += 1
                 self.raw_data_path = os.path.dirname(output_path)
                 self.processed_data_path = self.raw_data_path + '_processed'
@@ -167,8 +195,8 @@ class NceiScrape(SqlBackend):
                     kgf = scrape_variables.kluster_grid_format
                 self.grid_path = os.path.join(self.processed_data_path, f'kluster_export_{kgt}_{kgr}.{kgf}')
             else:
+                self.logger.log(logging.WARNING, 'Unable to download file {}'.format(output_path))
                 self.downloaded_error_count += 1
-            # self.logger.log(logging.INFO, (shipname, surveyname, filename, output_path))
         elif nceifile[-3:] == '.gz':
             self.ignored_count += 1
 
@@ -241,19 +269,25 @@ class NceiScrape(SqlBackend):
             retries += 1
             self.logger.log(logging.WARNING, f'Retrying {ncei_url}, received status code {resp.status_code}')
         self.logger.log(logging.ERROR, f'Unable to connect to {ncei_url}, tried {retries} times without success')
+        return None
 
     def kluster_process(self):
         """
         Run the kluster routines on the data we just downloaded.
         """
+
         if self.raw_data_path:
             if kluster_enabled:
                 if self.processed_data_path:
                     multibeamfiles = [os.path.join(self.raw_data_path, fil) for fil in os.listdir(self.raw_data_path)]
                     os.makedirs(self.processed_data_path, exist_ok=True)
-                    run_kluster(multibeamfiles, self.processed_data_path, logger=self.logger,
-                                coordinate_system=self.coordinate_system, vertical_reference=self.vertical_reference,
-                                grid_type=self.grid_type, resolution=self.resolution, grid_format=self.grid_format)
+                    processed, gridded = run_kluster(multibeamfiles, self.processed_data_path, logger=self.logger,
+                                                     coordinate_system=self.coordinate_system, vertical_reference=self.vertical_reference,
+                                                     grid_type=self.grid_type, resolution=self.resolution, grid_format=self.grid_format)
+                    if not processed:
+                        self.processed_data_path = ''
+                    if not gridded:
+                        self.grid_path = ''
                 else:
                     self.logger.log(logging.ERROR, f'Unable to find the processed data path, which is set during file transfer, were files not transferred?')
             else:
@@ -305,7 +339,45 @@ class NceiScrape(SqlBackend):
         return False
 
     def close(self):
+        """
+        Should always call this after a session to close the logger and backend
+        """
+
+        handlers = self.logger.handlers[:]
+        for handler in handlers:
+            handler.close()
+            self.logger.removeHandler(handler)
         self._close_backend()
+
+
+def survey_names_in_region(region: str, logger: logging.Logger = None):
+    """
+    Return all of the surveys with raw multibeam data found in the region provided.
+
+    Parameters
+    ----------
+    region
+        string name of one of the geopackages in region_geopackages
+
+    Returns
+    -------
+    list
+        list of ship names corrsponding to the survey names
+    list
+        list of survey names for all surveys with raw multibeam data in the region
+    """
+
+    mq = MultibeamQuery(logger=logger)
+    unique_ship_name, unique_survey_name = [], []
+    rawmbes_data = mq.query(region_name=region, include_fields=('PLATFORM', 'SURVEY_ID'))
+    if rawmbes_data:
+        ship_name = [feat['attributes']['PLATFORM'] for feat in rawmbes_data['features']]
+        survey_name = [feat['attributes']['SURVEY_ID'] for feat in rawmbes_data['features']]
+        for cnt, surv in enumerate(survey_name):
+            if surv not in unique_survey_name:
+                unique_survey_name.append(surv.lower())
+                unique_ship_name.append(ship_name[cnt].lower())
+    return unique_ship_name, unique_survey_name
 
 
 def _parse_multibeam_file_link(filelink: str):

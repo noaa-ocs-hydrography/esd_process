@@ -38,6 +38,10 @@ if __name__ == "__main__":  # run from command line
                             help='optional, processed coordinate system to use, one of NAD83 and WGS84, default is NAD83')
     nceiscrape.add_argument('-vf', '--vertical_reference', required=False, type=str, nargs='?', const='waterline', default='waterline',
                             help="optional, vertical reference to use for the processed data, one of 'ellipse' 'mllw' 'NOAA_MLLW' 'NOAA_MHW' (NOAA references require vdatum which isn't hooked up in here just yet), default is waterline")
+    nceiscrape.add_argument('-r', '--region', required=False, type=str, nargs='?', const=None, default=None,
+                            help="optional, the name of one of the region_geopackages that you want to limit your search to")
+    nceiscrape.add_argument('-rdir', '--region_directory', required=False, type=str, nargs='?', const=None, default=None,
+                            help="optional, the directory that contains the region geopackages, default is the esd_process/region_geopackages directory")
     nceiscrape.add_argument('-gtype', '--grid_type', required=False, type=str, nargs='?', const='single_resolution', default='single_resolution',
                             help="optional, the grid type you want to build with Kluster for each dataset, one of 'single_resolution', 'variable_resolution_tile', default is single_resolution")
     nceiscrape.add_argument('-res', '--resolution', required=False, type=float, nargs='?', const=None, default=None,
@@ -49,5 +53,5 @@ if __name__ == "__main__":  # run from command line
     if not args.esd_function:
         main()
     else:
-        main(args.output_directory, args.coordinate_system, args.vertical_reference, args.grid_type, args.resolution,
-             args.grid_format)
+        main(args.output_directory, args.coordinate_system, args.vertical_reference, args.region, args.region_directory,
+             args.grid_type, args.resolution, args.grid_format)

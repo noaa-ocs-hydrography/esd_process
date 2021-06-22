@@ -96,10 +96,10 @@ class NceiQuery(QueryBase):
     The shared attributes and methods for all the NCEI query classes, you should not use this directly, instead use one
     of the query classes depending on the data type you are interested in.  See MultibeamQuery as an example
     """
-    def __init__(self, logger: logging.Logger = None):
+    def __init__(self, logger: logging.Logger = None, regions_folder: str = None):
         super().__init__()
         self.logger = logger
-        self.regions = Regions(logger=self.logger)
+        self.regions = Regions(logger=self.logger, regions_folder=regions_folder)
         self.data_type = ''
         self.rest_level = ''
         self.fields = []
@@ -353,8 +353,8 @@ class MultibeamQuery(NceiQuery):
     https://data.ngdc.noaa.gov/platforms/ocean/ships
     """
 
-    def __init__(self, logger: logging.Logger = None):
-        super().__init__(logger=logger)
+    def __init__(self, logger: logging.Logger = None, regions_folder: str = None):
+        super().__init__(logger=logger, regions_folder=regions_folder)
         self.data_type = 'multibeam_dynamic'
         self.data_format = 'MB'
         self.rest_level = 0
@@ -384,8 +384,8 @@ class BagQuery(NceiQuery):
     https://www.ngdc.noaa.gov/nos/
     """
 
-    def __init__(self, logger: logging.Logger = None):
-        super().__init__(logger=logger)
+    def __init__(self, logger: logging.Logger = None, regions_folder: str = None):
+        super().__init__(logger=logger, regions_folder=regions_folder)
         self.data_type = 'nos_hydro_dynamic'
         self.data_format = 'BAG'
         self.rest_level = 0
@@ -415,8 +415,8 @@ class BpsQuery(NceiQuery):
     https://www.ngdc.noaa.gov/nos/
     """
 
-    def __init__(self, logger: logging.Logger = None):
-        super().__init__(logger=logger)
+    def __init__(self, logger: logging.Logger = None, regions_folder: str = None):
+        super().__init__(logger=logger, regions_folder=regions_folder)
         self.data_type = 'nos_hydro_dynamic'
         self.data_format = 'BPS'
         self.rest_level = 1
@@ -440,6 +440,8 @@ class BpsQuery(NceiQuery):
 
 if __name__ == '__main__':
     # get the ship and survey name for all surveys in the given region that have raw multibeam files on NCEI
+    # include the regions_folder argument if you want to use something other than scrape_variables.region_folder
+    # query = MultibeamQuery(regions_folder=r"C:\source\esd_process\esd_process\region_geopackages")
     query = MultibeamQuery()
     rawmbes_data = query.query(region_name='LA_LongBeach_WGS84', include_fields=('PLATFORM', 'SURVEY_ID'))
 

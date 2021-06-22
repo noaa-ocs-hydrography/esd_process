@@ -73,6 +73,9 @@ class SqlBackend(BaseBackend):
             self._create_backend()
 
     def _create_backend(self):
+        """
+        Generate a new sqlite3 database for the project
+        """
         self._backend_logger.log(logging.INFO, f'Generating new table "surveys" for scrape data...')
         # create the single table that we need to store survey metadata
         self._cur.execute('''CREATE TABLE surveys 
@@ -81,6 +84,9 @@ class SqlBackend(BaseBackend):
         self._conn.commit()
 
     def _add_survey(self):
+        """
+        Add a new entry for this survey to the database
+        """
         if self.ship_name and self.survey_name:
             if not self._check_for_survey(self.ship_name, self.survey_name):
                 self._backend_logger.log(logging.INFO, f'Adding new data for {self.ship_name}/{self.survey_name} to sqlite database')
@@ -99,6 +105,9 @@ class SqlBackend(BaseBackend):
         self.grid_path = ''
 
     def _check_for_survey(self, shipname: str, surveyname: str):
+        """
+        Check to see if this survey exists in the database
+        """
         data = self._cur.execute(f'SELECT * FROM surveys WHERE ship_name="{shipname.lower()}" and survey="{surveyname.lower()}"')
         if len(data.fetchall()) > 0:
             return True
@@ -106,6 +115,10 @@ class SqlBackend(BaseBackend):
             return False
 
     def _check_for_grid(self, shipname: str, surveyname: str):
+        """
+        Check to see if this survey has a grid path in the database (lets you know if you have successfully created a
+        grid with this survey)
+        """
         data = self._cur.execute(f'SELECT * FROM surveys WHERE ship_name="{shipname.lower()}" and survey="{surveyname.lower()}" and grid_path != ""')
         if len(data.fetchall()) > 0:
             return True
@@ -113,8 +126,14 @@ class SqlBackend(BaseBackend):
             return False
 
     def _remove_survey(self, shipname: str, surveyname: str):
+        """
+        Remove the entry for this survey from the database
+        """
         self._cur.execute(f'DELETE FROM surveys WHERE shipname="{shipname.lower()}" and survey="{surveyname.lower()}"')
         self._conn.commit()
 
     def _close_backend(self):
+        """
+        Close the database connection
+        """
         self._conn.close()

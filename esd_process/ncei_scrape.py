@@ -22,7 +22,8 @@ class NceiScrape(SqlBackend):
     Stores the metadata for the ncei scraping, run ncei_scrape to start the operation.
     """
     def __init__(self, output_folder: str = None, coordinate_system: str = None, vertical_reference: str = None,
-                 region: str = None, grid_type: str = None, resolution: float = None, grid_format: str = None):
+                 region: str = None, region_directory: str = None, grid_type: str = None, resolution: float = None,
+                 grid_format: str = None):
         super().__init__()
         # start a new session, should help with pulling from the server many times in a row
         self.session = requests.Session()
@@ -35,6 +36,7 @@ class NceiScrape(SqlBackend):
         self.coordinate_system = coordinate_system
         self.vertical_reference = vertical_reference
         self.region = region
+        self.region_directory = region_directory
         self.grid_type = grid_type
         self.resolution = resolution
         self.grid_format = grid_format
@@ -88,8 +90,13 @@ class NceiScrape(SqlBackend):
             self.region = self.region
         elif scrape_variables.region:
             self.region = scrape_variables.region
+        if self.region_directory is not None:
+            self.region_directory = self.region_directory
+        elif scrape_variables.region_folder:
+            self.region_directory = scrape_variables.region_folder
         if self.region:
-            self.region_ship_name, self.region_survey_name = survey_names_in_region(self.region)
+            self.region_ship_name, self.region_survey_name = survey_names_in_region(self.region, self.region_directory,
+                                                                                    self.logger)
 
     def _configure_logger(self):
         """
@@ -175,7 +182,6 @@ class NceiScrape(SqlBackend):
             # download the file and track if the download was successful
             success = self.download_multibeam_file(nceifile, output_path)
             if success:
-                self.logger.log(logging.INFO, 'Downloaded file {}'.format(output_path))
                 self.downloaded_success_count += 1
                 self.raw_data_path = os.path.dirname(output_path)
                 self.processed_data_path = self.raw_data_path + '_processed'
@@ -195,7 +201,6 @@ class NceiScrape(SqlBackend):
                     kgf = scrape_variables.kluster_grid_format
                 self.grid_path = os.path.join(self.processed_data_path, f'kluster_export_{kgt}_{kgr}.{kgf}')
             else:
-                self.logger.log(logging.WARNING, 'Unable to download file {}'.format(output_path))
                 self.downloaded_error_count += 1
         elif nceifile[-3:] == '.gz':
             self.ignored_count += 1
@@ -318,7 +323,7 @@ class NceiScrape(SqlBackend):
 
         if os.path.exists(output_path):
             self.logger.log(logging.WARNING, f'{output_path} already exists, skipping this file')
-            return False
+            return True
 
         retries = 0
         while retries < scrape_variables.download_retries:
@@ -332,10 +337,12 @@ class NceiScrape(SqlBackend):
                         else:
                             shutil.copyfileobj(response, outfile)
                         assert os.path.exists(output_path)
+                        self.logger.log(logging.INFO, 'Downloaded file {}'.format(output_path))
                         return True
             except Exception as e:
                 self.logger.log(logging.WARNING, f'Try {retries}: {type(e).__name__}: {e}')
                 retries += 1
+        self.logger.log(logging.WARNING, f'Unable to download file, tried {retries} times')
         return False
 
     def close(self):
@@ -350,7 +357,7 @@ class NceiScrape(SqlBackend):
         self._close_backend()
 
 
-def survey_names_in_region(region: str, logger: logging.Logger = None):
+def survey_names_in_region(region: str, region_directory: str = None, logger: logging.Logger = None):
     """
     Return all of the surveys with raw multibeam data found in the region provided.
 
@@ -358,6 +365,10 @@ def survey_names_in_region(region: str, logger: logging.Logger = None):
     ----------
     region
         string name of one of the geopackages in region_geopackages
+    region_directory
+        string path to the region geopackages folder
+    logger
+        optional logger if you want the query to log to your logger
 
     Returns
     -------
@@ -367,7 +378,7 @@ def survey_names_in_region(region: str, logger: logging.Logger = None):
         list of survey names for all surveys with raw multibeam data in the region
     """
 
-    mq = MultibeamQuery(logger=logger)
+    mq = MultibeamQuery(logger=logger, regions_folder=region_directory)
     unique_ship_name, unique_survey_name = [], []
     rawmbes_data = mq.query(region_name=region, include_fields=('PLATFORM', 'SURVEY_ID'))
     if rawmbes_data:
@@ -443,8 +454,8 @@ def _build_output_path(output_folder, file_extension, shipname, surveyname, file
     return pth
 
 
-def main(output_folder: str = None, coordinate_system: str = None, vertical_reference: str = None, grid_type: str = None,
-         resolution: float = None, grid_format: str = None):
+def main(output_folder: str = None, coordinate_system: str = None, vertical_reference: str = None, region: str = None,
+         region_directory: str = None, grid_type: str = None, resolution: float = None, grid_format: str = None):
     """
     Run the ncei scrape utility
 
@@ -456,6 +467,10 @@ def main(output_folder: str = None, coordinate_system: str = None, vertical_refe
         optional, processed coordinate system to use, one of NAD83 and WGS84, default is NAD83
     vertical_reference
         optional, vertical reference to use for the processed data, one of 'ellipse' 'mllw' 'NOAA_MLLW' 'NOAA_MHW' (NOAA references require vdatum which isn't hooked up in here just yet), default is waterline
+    region
+        optional, the name of one of the region_geopackages that you want to limit your search to
+    region_directory
+        optional, the directory that contains the region geopackages, default is the esd_process/region_geopackages directory
     grid_type
         optional, the grid type you want to build with Kluster for each dataset, one of 'single_resolution', 'variable_resolution_tile', default is single_resolution
     resolution
@@ -465,7 +480,8 @@ def main(output_folder: str = None, coordinate_system: str = None, vertical_refe
     """
 
     nc = NceiScrape(output_folder=output_folder, coordinate_system=coordinate_system, vertical_reference=vertical_reference,
-                    grid_type=grid_type, resolution=resolution, grid_format=grid_format)
+                    region=region, region_directory=region_directory, grid_type=grid_type, resolution=resolution,
+                    grid_format=grid_format)
     nc.ncei_scrape()
 
 

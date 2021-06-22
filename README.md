@@ -1,7 +1,5 @@
 # esd_process
 
-## Overview
-
 A utility for crawing the [NCEI ship data server](https://data.ngdc.noaa.gov/platforms/ocean/ships/) for Kongsberg data to process using Kluster.
 
 As NCEI archives data processed using MB-System, the multibeam files we download will have the following extension:
@@ -57,7 +55,7 @@ Run by calling the ncei_scrape.py file:
 
 `python -m esd_process`
 
-## Quickstart - using command line
+## Quickstart - nceiscrape
 
 Run by calling the ncei_scrape command line utility
 
@@ -70,3 +68,47 @@ See help text
 Example running and setting the output directory manually
 
 `python -m esd_process nceiscrape -o C:\source\esd_process\myoutputdirectory`
+
+Example limiting to a specific region (setting region directory is only necessary if it is not the esd_process/region_geopackages directory)
+
+`python -m esd_process nceiscrape -r MCD_GL_WGS84 -rdir "C:\source\esd_process\esd_process\region_geopackages" -o "C:\source\esd_process\myoutputdirectory"`
+
+## Quickstart - ncei_query
+
+nceiscrape will query the NCEI service for surveys within the time range/extents using ncei_query.  You can also use it by itself
+
+```
+from esd_process.ncei_query import MultibeamQuery, BagQuery
+
+# get the ship and survey name for all surveys in the given region that have raw multibeam files on NCEI
+query = MultibeamQuery()
+rawmbes_data = query.query(region_name='LA_LongBeach_WGS84', include_fields=('PLATFORM', 'SURVEY_ID'))
+> Discovered 19 regions from region folder C:\Users\eyou1\source\esd_process\esd_process\region_geopackages
+> Operating on area extents number 1...
+> Chunk 1 of 1...
+> NCEI query complete, found 16 surveys matching this query
+
+# get the download link for all the surveys in the given region that have BAG files on NCEI
+query = BagQuery()
+links_to_bagfiles = query.query(region_name='LA_LongBeach_WGS84', include_fields=('DOWNLOAD_URL',))
+> Discovered 19 regions from region folder C:\Users\eyou1\source\esd_process\esd_process\region_geopackages
+> Operating on area extents number 1...
+> Chunk 1 of 1...
+> NCEI query complete, found 27 surveys matching this query
+```
+
+## Quickstart - regions
+
+You can also directly access the data for all region geopackages found
+
+```
+from esd_process.regions import Regions
+
+reg = Regions()  # can include the path to a remote region geopackages directory
+envelope = reg.return_region_by_name('PBG_Gulf_UTM14N_MLLW')
+envelope
+> [{'xmin': -98.4, 'ymin': 24.0, 'xmax': -95.99, 'ymax': 31.2}]
+region_path = reg.return_region_by_name('PBG_Gulf_UTM14N_MLLW', return_bounds=False)
+region_path
+> 'C:\\source\\esd_process\\esd_process\\region_geopackages\\PBG_Gulf_UTM14N_MLLW.gpkg'
+```

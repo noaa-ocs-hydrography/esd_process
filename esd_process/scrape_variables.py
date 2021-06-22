@@ -4,9 +4,10 @@ import logging
 # where you want the downloaded data to go, otherwise uses default_output_directory
 output_directory = 'D:'
 # set this to only download data within a specific region
+region_folder = os.path.join(os.path.dirname(__file__), 'region_geopackages')
 region = 'LA_LongBeach_WGS84'
 
-default_output_directory = os.path.join(os.getcwd(), 'working_directory')
+default_output_directory = os.path.join(os.path.dirname(__file__), 'working_directory')
 download_retries = 20
 server_reconnect_retries = 10
 query_chunk_size = 500  # max number of records we can query at once

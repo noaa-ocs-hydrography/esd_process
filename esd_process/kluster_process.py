@@ -103,6 +103,8 @@ def run_kluster_intel_process(multibeam_files: list, outfold: str = None, coordi
         vf = scrape_variables.kluster_vertical_reference
 
     intel, converted_data_list = intel_process(multibeam_files, outfold, coord_system=cs, vert_ref=vf)
+    # need to pull the list of converted days from the project to include all converted data, not just converted data from this run
+    converted_data_list = list(intel.project.fqpr_instances.values())
     return intel, converted_data_list
 
 

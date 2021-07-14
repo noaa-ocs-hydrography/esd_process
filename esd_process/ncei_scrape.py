@@ -284,7 +284,7 @@ class NceiScrape(SqlBackend):
         if self.raw_data_path:
             if kluster_enabled:
                 if self.processed_data_path:
-                    multibeamfiles = [os.path.join(self.raw_data_path, fil) for fil in os.listdir(self.raw_data_path)]
+                    multibeamfiles = [os.path.join(self.raw_data_path, fil) for fil in os.listdir(self.raw_data_path) if os.path.splitext(fil)[1] in scrape_variables.processing_extensions]
                     os.makedirs(self.processed_data_path, exist_ok=True)
                     processed, gridded = run_kluster(multibeamfiles, self.processed_data_path, logger=self.logger,
                                                      coordinate_system=self.coordinate_system, vertical_reference=self.vertical_reference,

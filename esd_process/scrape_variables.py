@@ -5,13 +5,14 @@ import logging
 output_directory = 'D:'
 # set this to only download data within a specific region
 region_folder = os.path.join(os.path.dirname(__file__), 'region_geopackages')
-region = 'LA_LongBeach_WGS84'
+region = 'PBG_Gulf_UTM14N_MLLW'
 
 default_output_directory = os.path.join(os.path.dirname(__file__), 'working_directory')
 download_retries = 20
 server_reconnect_retries = 10
 query_chunk_size = 500  # max number of records we can query at once
 extensions = ('.mb58.gz', '.mb59.gz')
+processing_extensions = ('.all', '.kmall')
 logger_level = logging.INFO
 logger_name = 'scraper'
 

@@ -39,7 +39,7 @@ def run_kluster(multibeam_files: list, outfold: str = None, logger: logging.Logg
     os.makedirs(outfold, exist_ok=True)
     try:
         _, converted_data_list = run_kluster_intel_process(multibeam_files, outfold, coordinate_system=coordinate_system,
-                                                           vertical_reference=vertical_reference)
+                                                           vertical_reference=vertical_reference, logger=logger)
         processed = True
     except:
         converted_data_list = []
@@ -69,7 +69,7 @@ def run_kluster(multibeam_files: list, outfold: str = None, logger: logging.Logg
 
 
 def run_kluster_intel_process(multibeam_files: list, outfold: str = None, coordinate_system: str = None,
-                              vertical_reference: str = None):
+                              vertical_reference: str = None, logger: logging.Logger = None):
     """
     Process the list of multibeam files provided and return the kluster converted data
 
@@ -83,6 +83,8 @@ def run_kluster_intel_process(multibeam_files: list, outfold: str = None, coordi
         optional, processed coordinate system to use, one of NAD83 and WGS84, default is NAD83
     vertical_reference
         optional, vertical reference to use for the processed data, one of 'ellipse' 'mllw' 'NOAA_MLLW' 'NOAA_MHW' (NOAA references require vdatum which isn't hooked up in here just yet), default is waterline
+    logger
+        optional logger to log the info/warnings
 
     Returns
     -------
@@ -102,14 +104,14 @@ def run_kluster_intel_process(multibeam_files: list, outfold: str = None, coordi
     else:
         vf = scrape_variables.kluster_vertical_reference
 
-    intel, converted_data_list = intel_process(multibeam_files, outfold, coord_system=cs, vert_ref=vf)
+    intel, converted_data_list = intel_process(multibeam_files, outfold, coord_system=cs, vert_ref=vf, logger=logger)
     # need to pull the list of converted days from the project to include all converted data, not just converted data from this run
     converted_data_list = list(intel.project.fqpr_instances.values())
     return intel, converted_data_list
 
 
 def build_kluster_surface(converted_data_list: list, outfold: str = None, grid_type: str = None,
-                          resolution: float = None, grid_format: str = None):
+                          resolution: float = None, grid_format: str = None, logger: logging.Logger = None):
     """
     Take the converted Kluster data and build a new surface from it.  Export a GDAL format from the surface instance
     using the options in scrape_variables.
@@ -126,6 +128,8 @@ def build_kluster_surface(converted_data_list: list, outfold: str = None, grid_t
         optional (only for single_resolution), the resolution of the grid in meters, set this if you do not want to use the auto-resolution option
     grid_format
         optional, the grid format exported by kluster, one of 'csv', 'geotiff', 'bag', default is bag
+    logger
+        optional logger to log the info/warnings
 
     Returns
     -------

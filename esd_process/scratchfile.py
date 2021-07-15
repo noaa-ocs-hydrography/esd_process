@@ -22,7 +22,7 @@ raw_data_path = r'D:\falkor\FK005B'
 multibeamfiles = [os.path.join(raw_data_path, fil) for fil in os.listdir(raw_data_path) if
                   os.path.splitext(fil)[1] in scrape_variables.processing_extensions]
 processed_data_path = r'D:\falkor\FK005B_processed'
-processed, gridded = run_kluster(multibeamfiles, processed_data_path, logger=logger)
+processed, gridded = run_kluster(multibeamfiles, processed_data_path, logger=logger, vertical_reference='ellipse')
 
 ############################################################################################
 

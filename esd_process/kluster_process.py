@@ -27,7 +27,7 @@ def run_kluster(multibeam_files: list, outfold: str = None, logger: logging.Logg
     coordinate_system
         optional, processed coordinate system to use, one of NAD83 and WGS84, default is NAD83
     vertical_reference
-        optional, vertical reference to use for the processed data, one of 'ellipse' 'mllw' 'NOAA_MLLW' 'NOAA_MHW' (NOAA references require vdatum which isn't hooked up in here just yet), default is waterline
+        optional, vertical reference to use for the processed data, one of 'ellipse' 'waterline' 'NOAA_MLLW' 'NOAA_MHW' (NOAA references require vdatum which isn't hooked up in here just yet), default is waterline
     grid_type
         optional, the grid type you want to build with Kluster for each dataset, one of 'single_resolution', 'variable_resolution_tile', default is single_resolution
     resolution
@@ -82,7 +82,7 @@ def run_kluster_intel_process(multibeam_files: list, outfold: str = None, coordi
     coordinate_system
         optional, processed coordinate system to use, one of NAD83 and WGS84, default is NAD83
     vertical_reference
-        optional, vertical reference to use for the processed data, one of 'ellipse' 'mllw' 'NOAA_MLLW' 'NOAA_MHW' (NOAA references require vdatum which isn't hooked up in here just yet), default is waterline
+        optional, vertical reference to use for the processed data, one of 'ellipse' 'waterline' 'NOAA_MLLW' 'NOAA_MHW' (NOAA references require vdatum which isn't hooked up in here just yet), default is waterline
     logger
         optional logger to log the info/warnings
 

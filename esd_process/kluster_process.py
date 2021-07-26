@@ -1,5 +1,7 @@
 import os
 import logging
+import shutil
+from datetime import datetime
 
 try:
     from HSTB.kluster.fqpr_intelligence import intel_process
@@ -40,6 +42,8 @@ def run_kluster(multibeam_files: list, outfold: str = None, logger: logging.Logg
     try:
         _, converted_data_list = run_kluster_intel_process(multibeam_files, outfold, coordinate_system=coordinate_system,
                                                            vertical_reference=vertical_reference, logger=logger)
+        for fil in multibeam_files:
+            os.remove(fil)
         processed = True
     except:
         converted_data_list = []
@@ -52,8 +56,16 @@ def run_kluster(multibeam_files: list, outfold: str = None, logger: logging.Logg
             logger.log(logging.ERROR, f'run_kluster - error processing {len(multibeam_files)} multibeam files,'
                                       f' did not get any processed kluster data in return')
     try:
-        surf, export_path = build_kluster_surface(converted_data_list, outfold, grid_type=grid_type,
+        grid_outfold = os.path.join(outfold, 'grid')
+        surf, export_path = build_kluster_surface(converted_data_list, grid_outfold, grid_type=grid_type,
                                                   resolution=resolution, grid_format=grid_format)
+        for fldrs in os.listdir(outfold):
+            fldrpath = os.path.join(outfold, fldrs)
+            if fldrpath != grid_outfold:
+                try:  # for directories
+                    shutil.rmtree(fldrpath)
+                except NotADirectoryError:  # for files
+                    os.remove(fldrpath)
         gridded = True
     except:
         surf, export_path = None, ''
@@ -155,6 +167,10 @@ def build_kluster_surface(converted_data_list: list, outfold: str = None, grid_t
         kgf = scrape_variables.kluster_grid_format
 
     export_path = os.path.join(outfold, f'kluster_export_{kgf}_{kgt}_{kgr}')
-    bg = generate_new_surface(converted_data_list, grid_type=kgt, resolution=kgr, export_path=export_path,
-                              export_format=kgf)
+    output_path = os.path.join(outfold, f'kluster_surface')
+    if os.path.exists(output_path):
+        output_path = os.path.join(outfold, f'kluster_surface_{datetime.now().strftime("%H%M%S")}')
+
+    bg = generate_new_surface(converted_data_list, grid_type=kgt, resolution=kgr, output_path=output_path, use_dask=True,
+                              export_path=export_path, export_format=kgf)
     return bg, export_path

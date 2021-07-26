@@ -1,4 +1,7 @@
 from esd_process.ncei_scrape import *
+from dask.distributed import Client
+
+cl = Client(n_workers=4)
 
 logging.basicConfig()
 logfile = os.path.join('D:', f'logfile_{datetime.now().strftime("%Y%m%d_%H%M%S")}.txt')
@@ -48,3 +51,8 @@ fq = convert_multibeam([r"D:\falkor\FK005B\0000_20120917_155941_FK_EM710.all",
                         r"D:\falkor\FK005B\0012_20120917_213228_FK_EM710.all",
                         r"D:\falkor\FK005B\0013_20120917_220228_FK_EM710.all",
                         r"D:\falkor\FK005B\0014_20120917_223228_FK_EM710.all"])
+
+from HSTB.kluster.fqpr_convenience import reload_data
+from dask.distributed import Client
+fq = reload_data(r"D:\falkor\FK005B_processed\em710_225_09_24_2012 - Copy")
+fq.get_orientation_vectors()

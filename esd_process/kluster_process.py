@@ -71,7 +71,7 @@ def run_kluster(multibeam_files: list, outfold: str = None, logger: logging.Logg
         surf, export_path = None, ''
         gridded = False
     if logger:
-        if surf and os.path.join(export_path):
+        if surf and export_path:
             logger.log(logging.INFO, f'run_kluster - generated new surface, exported grid to {export_path}')
         elif surf:
             logger.log(logging.ERROR, f'run_kluster - generated new surface, but the export to {export_path} failed')
@@ -166,11 +166,27 @@ def build_kluster_surface(converted_data_list: list, outfold: str = None, grid_t
     else:
         kgf = scrape_variables.kluster_grid_format
 
-    export_path = os.path.join(outfold, f'kluster_export_{kgf}_{kgt}_{kgr}')
+    if kgr is None:
+        formatted_kgr = 'AUTO'
+    else:
+        formatted_kgr = kgr
+
+    basegridname = f'kluster_export_{kgf}_{kgt}_{formatted_kgr}'
+    export_path = os.path.join(outfold, basegridname)
     output_path = os.path.join(outfold, f'kluster_surface')
     if os.path.exists(output_path):
         output_path = os.path.join(outfold, f'kluster_surface_{datetime.now().strftime("%H%M%S")}')
 
     bg = generate_new_surface(converted_data_list, grid_type=kgt, resolution=kgr, output_path=output_path, use_dask=True,
                               export_path=export_path, export_format=kgf)
+
+    # check for successful exports, they will have name=basegridname with a _index addition (the first export of 8 would have a _1)
+    found = False
+    for fil in os.listdir(outfold):
+        if fil.find(basegridname) != -1:
+            found = True
+            break
+    if not found:
+        export_path = None
+
     return bg, export_path

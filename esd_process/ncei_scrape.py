@@ -180,14 +180,17 @@ class NceiScrape(SqlBackend):
             True if we should skip to gridding
         """
 
-        shipname, surveyname, filename = _parse_multibeam_file_link(ncei_url)
-        output_path = _build_output_path(self.output_folder, ncei_url[-8:], shipname, surveyname, filename, skip_make_dir=True)
-        raw_data_path = os.path.dirname(output_path)
-        processed_data_path = raw_data_path + '_processed'
-        if os.path.exists(processed_data_path) and not os.path.exists(raw_data_path):
-            self.raw_data_path = raw_data_path
-            self.processed_data_path = processed_data_path
-            return True
+        if ncei_url[-8:] in scrape_variables.extensions:
+            shipname, surveyname, filename = _parse_multibeam_file_link(ncei_url)
+            output_path = _build_output_path(self.output_folder, ncei_url[-8:], shipname, surveyname, filename, skip_make_dir=True)
+            raw_data_path = os.path.dirname(output_path)
+            processed_data_path = raw_data_path + '_processed'
+            if os.path.exists(processed_data_path) and not os.path.exists(raw_data_path):
+                self.raw_data_path = raw_data_path
+                self.processed_data_path = processed_data_path
+                return True
+            else:
+                return False
         else:
             return False
 

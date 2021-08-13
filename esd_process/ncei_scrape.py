@@ -258,7 +258,8 @@ class NceiScrape(SqlBackend):
             resp = self.connect_to_server(nceisite)  # response object from request
             bsoup = BeautifulSoup(resp.text, "html.parser")  # parse the html text
             for i in bsoup.find_all("a"):  # get all the hyperlink tags
-                try:
+                # try:
+                if i.attrs:
                     href = i.attrs['href']
                     data = i.text
                     if not href.endswith(r'/'):
@@ -277,8 +278,8 @@ class NceiScrape(SqlBackend):
                                 continue
                             self.logger.log(logging.INFO, 'Crawling for ship {}'.format(data))
                         self._ncei_scrape(nceisite=nceisite + href)
-                except Exception as e:
-                    self.logger.log(logging.ERROR, f'ERROR: {type(e).__name__} - {e}')
+                # except Exception as e:
+                #     self.logger.log(logging.ERROR, f'ERROR: {type(e).__name__} - {e}')
             self.kluster_process()
 
     def connect_to_server(self, ncei_url: str):

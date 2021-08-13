@@ -163,6 +163,34 @@ class NceiScrape(SqlBackend):
             return True
         return True
 
+    def _skip_to_gridding(self, ncei_url: str):
+        """
+        ncei scrape is a three step process: download raw multibeam, process to kluster format, build and export grid.  The completion of
+        the process to kluster format step ends with deleting the raw multibeam.  If we have already processed and deleted the raw
+        data, we don't want to then restart downloading the multibeam again.  Here we see if we should skip to gridding.
+
+        Parameters
+        ----------
+        ncei_url
+            path to the base of a ship/survey name
+
+        Returns
+        -------
+        bool
+            True if we should skip to gridding
+        """
+
+        shipname, surveyname, filename = _parse_multibeam_file_link(ncei_url)
+        output_path = _build_output_path(self.output_folder, ncei_url[-8:], shipname, surveyname, filename, skip_make_dir=True)
+        raw_data_path = os.path.dirname(output_path)
+        processed_data_path = raw_data_path + '_processed'
+        if os.path.exists(processed_data_path) and not os.path.exists(raw_data_path):
+            self.raw_data_path = raw_data_path
+            self.processed_data_path = processed_data_path
+            return True
+        else:
+            return False
+
     def _download_file_url(self, nceifile: str):
         """
         We hit a URL that is a file link, so figure out if it is a file we want and download it.  Maintain the globals
@@ -235,6 +263,9 @@ class NceiScrape(SqlBackend):
                     data = i.text
                     if not href.endswith(r'/'):
                         nceifile = nceisite + href.lstrip(r'/')
+                        # only look at downloading raw multibeam files if we don't have a processed directory yet
+                        if self._skip_to_gridding(nceifile):
+                            break
                         self._download_file_url(nceifile)
 
                     # Found that they will make the link and the text the same when it is a link to a subpage.  For example,
@@ -423,7 +454,7 @@ def _parse_multibeam_file_link(filelink: str):
     return shipname, surveyname, filename
 
 
-def _build_output_path(output_folder, file_extension, shipname, surveyname, filename):
+def _build_output_path(output_folder, file_extension, shipname, surveyname, filename, skip_make_dir: bool = False):
     """
     We want the file to go into a subfolder for survey/shipname, so we take the filename and build the path using
     the provided attributes and the output_folder.
@@ -450,7 +481,8 @@ def _build_output_path(output_folder, file_extension, shipname, surveyname, file
 
     basefile = filename[:-len(file_extension)]
     pth = os.path.join(output_folder, shipname, surveyname, basefile)
-    os.makedirs(os.path.join(output_folder, shipname, surveyname), exist_ok=True)
+    if not skip_make_dir:
+        os.makedirs(os.path.join(output_folder, shipname, surveyname), exist_ok=True)
     return pth
 
 

@@ -45,7 +45,8 @@ def run_kluster(multibeam_files: list, outfold: str = None, logger: logging.Logg
         for fil in multibeam_files:
             os.remove(fil)
         processed = True
-    except:
+    except Exception as e:
+        logger.log(logging.ERROR, f'ERROR: {type(e).__name__} - {e}')
         converted_data_list = []
         processed = False
     if logger:
@@ -67,7 +68,8 @@ def run_kluster(multibeam_files: list, outfold: str = None, logger: logging.Logg
                 except NotADirectoryError:  # for files
                     os.remove(fldrpath)
         gridded = True
-    except:
+    except Exception as e:
+        logger.log(logging.ERROR, f'ERROR: {type(e).__name__} - {e}')
         surf, export_path = None, ''
         gridded = False
     if logger:

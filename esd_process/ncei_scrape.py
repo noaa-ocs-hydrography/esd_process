@@ -261,28 +261,28 @@ class NceiScrape(SqlBackend):
             resp = self.connect_to_server(nceisite)  # response object from request
             bsoup = BeautifulSoup(resp.text, "html.parser")  # parse the html text
             for i in bsoup.find_all("a"):  # get all the hyperlink tags
-                # try:
-                if i.attrs:
-                    href = i.attrs['href']
-                    data = i.text
-                    if not href.endswith(r'/'):
-                        nceifile = nceisite + href.lstrip(r'/')
-                        # only look at downloading raw multibeam files if we don't have a processed directory yet
-                        if self._skip_to_gridding(nceifile):
-                            break
-                        self._download_file_url(nceifile)
+                try:
+                    if i.attrs:
+                        href = i.attrs['href']
+                        data = i.text
+                        if not href.endswith(r'/'):
+                            nceifile = nceisite + href.lstrip(r'/')
+                            # only look at downloading raw multibeam files if we don't have a processed directory yet
+                            if self._skip_to_gridding(nceifile):
+                                break
+                            self._download_file_url(nceifile)
 
-                    # Found that they will make the link and the text the same when it is a link to a subpage.  For example,
-                    # href='ahi/' and data='ahi/' for the link to the ahi ship subpage.  This check seems to work pretty well
-                    # througout the site
-                    elif href == data:
-                        if shiplevel:
-                            if data.rstrip('/') in scrape_variables.exclude_vessels:
-                                continue
-                            self.logger.log(logging.INFO, 'Crawling for ship {}'.format(data))
-                        self._ncei_scrape(nceisite=nceisite + href)
-                # except Exception as e:
-                #     self.logger.log(logging.ERROR, f'ERROR: {type(e).__name__} - {e}')
+                        # Found that they will make the link and the text the same when it is a link to a subpage.  For example,
+                        # href='ahi/' and data='ahi/' for the link to the ahi ship subpage.  This check seems to work pretty well
+                        # througout the site
+                        elif href == data:
+                            if shiplevel:
+                                if data.rstrip('/') in scrape_variables.exclude_vessels:
+                                    continue
+                                self.logger.log(logging.INFO, 'Crawling for ship {}'.format(data))
+                            self._ncei_scrape(nceisite=nceisite + href)
+                except Exception as e:
+                    self.logger.log(logging.ERROR, f'ERROR: {type(e).__name__} - {e}')
             self.kluster_process()
 
     def connect_to_server(self, ncei_url: str):

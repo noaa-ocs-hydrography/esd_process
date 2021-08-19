@@ -177,7 +177,9 @@ def build_kluster_surface(converted_data_list: list, outfold: str = None, grid_t
     if os.path.exists(output_path):
         output_path = os.path.join(outfold, f'kluster_surface_{datetime.now().strftime("%H%M%S")}')
 
-    bg = generate_new_surface(converted_data_list, grid_type=kgt, resolution=kgr, output_path=output_path, use_dask=True,
+    logger.log(logging.INFO, f'run_kluster - generating new surface {output_path}')
+    logger.log(logging.INFO, f'run_kluster - surface grid_type = {kgt}, surface resolution = {kgr}')
+    bg = generate_new_surface(converted_data_list, grid_type=kgt, tile_size=128.0, resolution=kgr, output_path=output_path, use_dask=True,
                               export_path=export_path, export_format=kgf)
 
     # check for successful exports, they will have name=basegridname with a _index addition (the first export of 8 would have a _1)

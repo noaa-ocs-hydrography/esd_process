@@ -42,11 +42,13 @@ def run_kluster(multibeam_files: list, outfold: str = None, logger: logging.Logg
     try:
         _, converted_data_list = run_kluster_intel_process(multibeam_files, outfold, coordinate_system=coordinate_system,
                                                            vertical_reference=vertical_reference, logger=logger)
-        for fil in multibeam_files:
-            os.remove(fil)
+        if multibeam_files:
+            for fil in multibeam_files:
+                os.remove(fil)
         processed = True
     except Exception as e:
-        logger.log(logging.ERROR, f'ERROR: {type(e).__name__} - {e}')
+        if logger:
+            logger.log(logging.ERROR, f'ERROR: {type(e).__name__} - {e}')
         converted_data_list = []
         processed = False
     if logger:
@@ -59,7 +61,7 @@ def run_kluster(multibeam_files: list, outfold: str = None, logger: logging.Logg
     try:
         grid_outfold = os.path.join(outfold, 'grid')
         surf, export_path = build_kluster_surface(converted_data_list, grid_outfold, grid_type=grid_type,
-                                                  resolution=resolution, grid_format=grid_format)
+                                                  resolution=resolution, grid_format=grid_format, logger=logger)
         for fldrs in os.listdir(outfold):
             fldrpath = os.path.join(outfold, fldrs)
             if fldrpath != grid_outfold:
@@ -69,7 +71,8 @@ def run_kluster(multibeam_files: list, outfold: str = None, logger: logging.Logg
                     os.remove(fldrpath)
         gridded = True
     except Exception as e:
-        logger.log(logging.ERROR, f'ERROR: {type(e).__name__} - {e}')
+        if logger:
+            logger.log(logging.ERROR, f'ERROR: {type(e).__name__} - {e}')
         surf, export_path = None, ''
         gridded = False
     if logger:
@@ -179,8 +182,9 @@ def build_kluster_surface(converted_data_list: list, outfold: str = None, grid_t
     if os.path.exists(output_path):
         output_path = os.path.join(outfold, f'kluster_surface_{datetime.now().strftime("%H%M%S")}')
 
-    logger.log(logging.INFO, f'run_kluster - generating new surface {output_path}')
-    logger.log(logging.INFO, f'run_kluster - surface grid_type = {kgt}, surface resolution = {kgr}')
+    if logger:
+        logger.log(logging.INFO, f'run_kluster - generating new surface {output_path}')
+        logger.log(logging.INFO, f'run_kluster - surface grid_type = {kgt}, surface resolution = {kgr}')
     bg = generate_new_surface(converted_data_list, grid_type=kgt, tile_size=128.0, resolution=kgr, output_path=output_path, use_dask=True,
                               export_path=export_path, export_format=kgf)
 

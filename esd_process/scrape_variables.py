@@ -23,6 +23,11 @@ kluster_grid_type = 'single_resolution'  # one of 'single_resolution', 'variable
 kluster_resolution = None  # set this to pick the resolution of the grid, None will auto pick, variable resolution must be None
 kluster_grid_format = 'bag'  # one of 'csv', 'geotiff', 'bag'
 
+# kluster dask client variables
+kluster_number_of_workers = None  # set this if you want to specify a certain number of workers, otherwise it is automatically selected
+kluster_threads_per_worker = None  # set this if you want to specify the number of threads per dask worker, otherwise it is automatically selected
+kluster_memory_per_worker = None  # set this if you want to specify the amount of memory per worker in GB, otherwise it is automatically selected
+
 # exclude vessels that are decommissioned or are not likely to ever get a modern kongsberg sonar system, shortens the
 # time necessary to crawl the site
 exclude_vessels = (

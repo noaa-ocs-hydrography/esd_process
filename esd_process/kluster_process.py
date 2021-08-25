@@ -6,6 +6,7 @@ from datetime import datetime
 try:
     from HSTB.kluster.fqpr_intelligence import intel_process
     from HSTB.kluster.fqpr_convenience import generate_new_surface
+    from HSTB.kluster.dask_helpers import dask_find_or_start_client, Client
     kluster_enabled = True
 except:
     kluster_enabled = False
@@ -38,10 +39,13 @@ def run_kluster(multibeam_files: list, outfold: str = None, logger: logging.Logg
         optional, the grid format exported by kluster, one of 'csv', 'geotiff', 'bag', default is bag
     """
 
+    dclient = dask_find_or_start_client(number_of_workers=scrape_variables.kluster_number_of_workers,
+                                        threads_per_worker=scrape_variables.kluster_threads_per_worker,
+                                        memory_per_worker=scrape_variables.kluster_memory_per_worker)
     os.makedirs(outfold, exist_ok=True)
     try:
         _, converted_data_list = run_kluster_intel_process(multibeam_files, outfold, coordinate_system=coordinate_system,
-                                                           vertical_reference=vertical_reference, logger=logger)
+                                                           vertical_reference=vertical_reference, logger=logger, client=dclient)
         if multibeam_files:
             for fil in multibeam_files:
                 os.remove(fil)
@@ -61,7 +65,7 @@ def run_kluster(multibeam_files: list, outfold: str = None, logger: logging.Logg
     try:
         grid_outfold = os.path.join(outfold, 'grid')
         surf, export_path = build_kluster_surface(converted_data_list, grid_outfold, grid_type=grid_type,
-                                                  resolution=resolution, grid_format=grid_format, logger=logger)
+                                                  resolution=resolution, grid_format=grid_format, logger=logger, client=dclient)
         for fldrs in os.listdir(outfold):
             fldrpath = os.path.join(outfold, fldrs)
             if fldrpath != grid_outfold:
@@ -86,7 +90,7 @@ def run_kluster(multibeam_files: list, outfold: str = None, logger: logging.Logg
 
 
 def run_kluster_intel_process(multibeam_files: list, outfold: str = None, coordinate_system: str = None,
-                              vertical_reference: str = None, logger: logging.Logger = None):
+                              vertical_reference: str = None, logger: logging.Logger = None, client: Client = None):
     """
     Process the list of multibeam files provided and return the kluster converted data
 
@@ -102,6 +106,8 @@ def run_kluster_intel_process(multibeam_files: list, outfold: str = None, coordi
         optional, vertical reference to use for the processed data, one of 'ellipse' 'waterline' 'NOAA_MLLW' 'NOAA_MHW' (NOAA references require vdatum which isn't hooked up in here just yet), default is waterline
     logger
         optional logger to log the info/warnings
+    client
+        optional dask Client to pass into the process function
 
     Returns
     -------
@@ -121,14 +127,14 @@ def run_kluster_intel_process(multibeam_files: list, outfold: str = None, coordi
     else:
         vf = scrape_variables.kluster_vertical_reference
 
-    intel, converted_data_list = intel_process(multibeam_files, outfold, coord_system=cs, vert_ref=vf, logger=logger)
+    intel, converted_data_list = intel_process(multibeam_files, outfold, coord_system=cs, vert_ref=vf, logger=logger, client=client)
     # need to pull the list of converted days from the project to include all converted data, not just converted data from this run
     converted_data_list = list(intel.project.fqpr_instances.values())
     return intel, converted_data_list
 
 
 def build_kluster_surface(converted_data_list: list, outfold: str = None, grid_type: str = None,
-                          resolution: float = None, grid_format: str = None, logger: logging.Logger = None):
+                          resolution: float = None, grid_format: str = None, logger: logging.Logger = None, client: Client = None):
     """
     Take the converted Kluster data and build a new surface from it.  Export a GDAL format from the surface instance
     using the options in scrape_variables.
@@ -147,6 +153,8 @@ def build_kluster_surface(converted_data_list: list, outfold: str = None, grid_t
         optional, the grid format exported by kluster, one of 'csv', 'geotiff', 'bag', default is bag
     logger
         optional logger to log the info/warnings
+    client
+        optional dask Client to pass into the process function
 
     Returns
     -------
@@ -186,7 +194,7 @@ def build_kluster_surface(converted_data_list: list, outfold: str = None, grid_t
         logger.log(logging.INFO, f'run_kluster - generating new surface {output_path}')
         logger.log(logging.INFO, f'run_kluster - surface grid_type = {kgt}, surface resolution = {kgr}')
     bg = generate_new_surface(converted_data_list, grid_type=kgt, tile_size=128.0, resolution=kgr, output_path=output_path, use_dask=True,
-                              export_path=export_path, export_format=kgf)
+                              export_path=export_path, export_format=kgf, client=client)
 
     # check for successful exports, they will have name=basegridname with a _index addition (the first export of 8 would have a _1)
     found = False

@@ -13,7 +13,7 @@ DESCRIPTION = 'NCEI web crawler and data processor using Kluster'
 URL = 'https://github.com/noaa-ocs-hydrography/esd_process'
 EMAIL = 'eric.g.younkin@noaa.gov'
 AUTHOR = 'Eric Younkin'
-REQUIRES_PYTHON = '>=3.8.2'
+REQUIRES_PYTHON = '>=3.8.12'
 VERSION = ''
 
 # What packages are required for this module to be executed?

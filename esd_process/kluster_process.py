@@ -52,15 +52,15 @@ def run_kluster(multibeam_files: list, outfold: str = None, logger: logging.Logg
         processed = True
     except Exception as e:
         if logger:
-            logger.log(logging.ERROR, f'ERROR: {type(e).__name__} - {e}')
+            logger.log(logging.ERROR, f'ERROR: run_kluster_intel_process: {type(e).__name__} - {e}')
         converted_data_list = []
         processed = False
     if logger:
         if len(converted_data_list) > 0:
-            logger.log(logging.INFO, f'run_kluster - processed {len(multibeam_files)} multibeam files into '
+            logger.log(logging.INFO, f'run_kluster_intel_process - processed {len(multibeam_files)} multibeam files into '
                                      f'{len(converted_data_list)} kluster converted instances')
         else:
-            logger.log(logging.ERROR, f'run_kluster - error processing {len(multibeam_files)} multibeam files,'
+            logger.log(logging.ERROR, f'run_kluster_intel_process - error processing {len(multibeam_files)} multibeam files,'
                                       f' did not get any processed kluster data in return')
     try:
         grid_outfold = os.path.join(outfold, 'grid')
@@ -76,7 +76,7 @@ def run_kluster(multibeam_files: list, outfold: str = None, logger: logging.Logg
         gridded = True
     except Exception as e:
         if logger:
-            logger.log(logging.ERROR, f'ERROR: {type(e).__name__} - {e}')
+            logger.log(logging.ERROR, f'ERROR: build_kluster_surface {type(e).__name__} - {e}')
         surf, export_path = None, ''
         gridded = False
     if logger:

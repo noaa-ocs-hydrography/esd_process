@@ -76,9 +76,9 @@ class NceiScrape(SqlBackend):
         Simple info message for whether or not Kluster is installed and found
         """
         if kluster_enabled:
-            self.logger.log(logging.INFO, f'Kluster module found, kluster processing enabled')
+            self.logger.log(logging.INFO, f'_check_kluster: Kluster module found, kluster processing enabled')
         else:
-            self.logger.log(logging.WARNING, f'Unable to find Kluster!')
+            self.logger.log(logging.WARNING, f'_check_kluster: Unable to find Kluster!')
 
     def _check_regions(self):
         """
@@ -149,21 +149,21 @@ class NceiScrape(SqlBackend):
             self.survey_url = ncei_url
             self.raw_data_path = ''
             if not self.region_survey_name:
-                self.logger.log(logging.WARNING, f'region list is empty, were no regions found for your query?')
+                self.logger.log(logging.WARNING, f'_allow_shipname_surveyname: region list is empty, were no regions found for your query?')
                 return False
 
             # these two checks only if a region was provided
             if self.region_survey_name and (self.survey_name.lower() not in self.region_survey_name):
-                self.logger.log(logging.INFO, f'Skipping {self.ship_name}/{self.survey_name}, survey name not found in region list')
+                self.logger.log(logging.INFO, f'_allow_shipname_surveyname: Skipping {self.ship_name}/{self.survey_name}, survey name not found in region list')
                 return False
             elif self.region_ship_name[self.region_survey_name.index(self.survey_name.lower())].replace(' ', '_') != self.ship_name:
-                self.logger.log(logging.INFO, f'Skipping {self.ship_name}/{self.survey_name}, survey name found but ship name does not match')
+                self.logger.log(logging.INFO, f'_allow_shipname_surveyname: Skipping {self.ship_name}/{self.survey_name}, survey name found but ship name does not match')
                 return False
 
             if self._check_for_grid(self.ship_name, self.survey_name):  # survey exists in metadata and a grid has successfully been made
-                self.logger.log(logging.INFO, f'Skipping {self.ship_name}/{self.survey_name}, already processed once')
+                self.logger.log(logging.INFO, f'_allow_shipname_surveyname: Skipping {self.ship_name}/{self.survey_name}, already processed once')
                 return False
-            self.logger.log(logging.INFO, f'Searching for files in {self.ship_name}/{self.survey_name}')
+            self.logger.log(logging.INFO, f'_allow_shipname_surveyname: Searching for files in {self.ship_name}/{self.survey_name}')
             return True
         return True
 
@@ -286,7 +286,7 @@ class NceiScrape(SqlBackend):
                                 self.logger.log(logging.INFO, 'Crawling for ship {}'.format(data))
                             self._ncei_scrape(nceisite=nceisite + href)
                 except Exception as e:
-                    self.logger.log(logging.ERROR, f'ERROR: {type(e).__name__} - {e}')
+                    self.logger.log(logging.ERROR, f'_ncei_scrape ERROR: {type(e).__name__} - {e}')
             self.kluster_process()
 
     def connect_to_server(self, ncei_url: str):
@@ -336,9 +336,9 @@ class NceiScrape(SqlBackend):
                     if not gridded:
                         self.grid_path = ''
                 else:
-                    self.logger.log(logging.ERROR, f'Unable to find the processed data path, which is set during file transfer, were files not transferred?')
+                    self.logger.log(logging.ERROR, f'kluster_process: Unable to find the processed data path, which is set during file transfer, were files not transferred?')
             else:
-                self.logger.log(logging.WARNING, f'Kluster not found, skipping the processing for this survey')
+                self.logger.log(logging.WARNING, f'kluster_process: Kluster not found, skipping the processing for this survey')
         else:
             # no data transferred, we process nothing
             pass

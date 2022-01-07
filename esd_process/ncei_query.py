@@ -315,7 +315,7 @@ class NceiQuery(QueryBase):
         object_count = 0
         feature_data = {}
         for cnt, envelope in enumerate(self.envelope_extents):
-            self._print(f'Operating on area extents number {cnt + 1}...')
+            self._print(f'Operating on area extents number {cnt + 1} of {len(self.envelope_extents)}...')
             # first pass, see if the return is going to be larger than 1000 records, just get the IDs first
             object_ids = self._query_object_ids(envelope)
             # now query for the data, with a query for each chunk of object ids

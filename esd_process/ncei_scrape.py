@@ -148,6 +148,10 @@ class NceiScrape(SqlBackend):
             self.survey_name = urldata[7]
             self.survey_url = ncei_url
             self.raw_data_path = ''
+            if not self.region_survey_name:
+                self.logger.log(logging.WARNING, f'region list is empty, were no regions found for your query?')
+                return False
+
             # these two checks only if a region was provided
             if self.region_survey_name and (self.survey_name.lower() not in self.region_survey_name):
                 self.logger.log(logging.INFO, f'Skipping {self.ship_name}/{self.survey_name}, survey name not found in region list')
@@ -521,7 +525,10 @@ def main(output_folder: str = None, coordinate_system: str = None, vertical_refe
     nc = NceiScrape(output_folder=output_folder, coordinate_system=coordinate_system, vertical_reference=vertical_reference,
                     region=region, region_directory=region_directory, grid_type=grid_type, resolution=resolution,
                     grid_format=grid_format)
-    nc.ncei_scrape()
+    if nc.region_survey_name:
+        nc.ncei_scrape()
+    else:
+        nc.logger.log(logging.WARNING, f'No regions found in {region}, skipping download')
 
 
 if __name__ == "__main__":

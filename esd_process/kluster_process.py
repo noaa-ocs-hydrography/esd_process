@@ -13,7 +13,23 @@ except:
 from esd_process import scrape_variables
 
 
-def run_kluster(multibeam_files: list, outfold: str = None, logger: logging.Logger = None, coordinate_system: str = None,
+def _delete_raw_multibeam(multibeam_files: list):
+    if multibeam_files:
+        for fil in multibeam_files:
+            os.remove(fil)
+
+
+def _delete_processed_multibeam(outfolder: str, grid_folder: str):
+    for fldrs in os.listdir(outfolder):
+        fldrpath = os.path.join(outfolder, fldrs)
+        if fldrpath != grid_folder:
+            try:  # for directories
+                shutil.rmtree(fldrpath)
+            except NotADirectoryError:  # for files
+                os.remove(fldrpath)
+
+
+def run_kluster(multibeam_files: list, outfold: str, logger: logging.Logger = None, coordinate_system: str = None,
                 vertical_reference: str = None, grid_type: str = None, resolution: float = None, grid_format: str = None):
     """
     Run the kluster routines to process the provided multibeam files and output processed kluster formats for pings and
@@ -46,9 +62,6 @@ def run_kluster(multibeam_files: list, outfold: str = None, logger: logging.Logg
     try:
         _, converted_data_list = run_kluster_intel_process(multibeam_files, outfold, coordinate_system=coordinate_system,
                                                            vertical_reference=vertical_reference, logger=logger, client=dclient)
-        if multibeam_files:
-            for fil in multibeam_files:
-                os.remove(fil)
         processed = True
     except Exception as e:
         if logger:
@@ -66,13 +79,8 @@ def run_kluster(multibeam_files: list, outfold: str = None, logger: logging.Logg
         grid_outfold = os.path.join(outfold, 'grid')
         surf, export_path = build_kluster_surface(converted_data_list, grid_outfold, grid_type=grid_type,
                                                   resolution=resolution, grid_format=grid_format, logger=logger, client=dclient)
-        for fldrs in os.listdir(outfold):
-            fldrpath = os.path.join(outfold, fldrs)
-            if fldrpath != grid_outfold:
-                try:  # for directories
-                    shutil.rmtree(fldrpath)
-                except NotADirectoryError:  # for files
-                    os.remove(fldrpath)
+        _delete_processed_multibeam(outfold, grid_outfold)
+        _delete_raw_multibeam(multibeam_files)
         gridded = True
     except Exception as e:
         if logger:
